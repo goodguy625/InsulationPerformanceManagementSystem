@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>절연성능 관리 시스템</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>절연성능 관리 시스템</h1>
+            <div class="mode-selector">
+                <button class="mode-btn active" data-mode="performance">절연성능 경향평가</button>
+                <button class="mode-btn" data-mode="degradation">절연저항 패턴평가</button>
+            </div>
+        </header>
+
+        <!-- 절연성능 평가 모드 -->
+        <div id="performance-mode" class="mode-content active">
+            <h2>절연성능 경향평가</h2>
+
+            <!-- 파일 업로드 섹션 (다량 데이터용) -->
+            <div class="input-section">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📁 다량 데이터(업로드)</h3>
+                <p style="color: #6c757d; font-size: 0.9em; margin-bottom: 15px; padding: 10px; background: #e9ecef; border-left: 4px solid #6c757d; border-radius: 4px;">
+                    ℹ️ <strong>안내:</strong> 각 행은 독립적으로 분석되며, 민감도는 이전 행과 비교하여 계산됩니다. 첫 번째 행의 민감도는 <strong>"-" (기준값)</strong>으로 표시됩니다.
+                </p>
+                <div class="input-group">
+                    <label for="performance-file-input">Excel 또는 CSV 파일 업로드:</label>
+                    <input type="file" id="performance-file-input" accept=".xlsx,.xls,.csv" style="padding: 10px;">
+                    <small>Excel(.xlsx, .xls) 또는 CSV 파일을 선택하세요. 첫 번째 열: 전류(A), 두 번째 열: 온도(℃)</small>
+                </div>
+                <button id="upload-performance-file" class="calculate-btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">다량 데이터 분석</button>
+            </div>
+
+            <!-- 시계열 데이터 입력 섹션 -->
+            <div class="input-section" style="margin-top: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">✏️ 단일 데이터(입력)</h3>
+                <p style="color: #e74c3c; font-size: 0.9em; margin-bottom: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                    ⏱️ <strong>측정 방법:</strong> 5분 간격으로 <strong>최소 2회 이상</strong> 전류와 온도를 입력해주세요. 마지막 입력값을 I<sub>max</sub>, T<sub>max</sub>로 사용하며, 민감도는 <strong>마지막 2개 측정값</strong>을 비교하여 계산합니다.
+                </p>
+                <div style="display: grid; grid-template-columns: 100px 1fr 1fr auto auto; gap: 10px; align-items: end;">
+                    <div class="input-group">
+                        <label for="single-time-input">시간(분):</label>
+                        <input type="number" id="single-time-input" step="5" placeholder="0" min="0" value="0" readonly style="background: #f8f9fa;">
+                    </div>
+                    <div class="input-group">
+                        <label for="single-current-input">전류 (I) [A]:</label>
+                        <input type="number" id="single-current-input" step="0.01" placeholder="예: 10.5" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label for="single-temperature-input">온도 (T) [℃]:</label>
+                        <input type="number" id="single-temperature-input" step="0.01" placeholder="예: 65.0" min="0">
+                    </div>
+                    <button id="add-single-performance" class="calculate-btn" style="white-space: nowrap;">추가</button>
+                    <button id="reset-performance-input" class="clear-btn-small" style="white-space: nowrap;">초기화</button>
+                </div>
+
+                <!-- 입력된 데이터 목록 -->
+                <div id="performance-input-list" style="margin-top: 15px; display: none;">
+                    <h4 style="color: #667eea; font-size: 0.95em; margin-bottom: 10px;">
+                        입력된 데이터
+                        <span style="color: #e74c3c; font-weight: bold;">(최소 2개 이상 입력 필요)</span>
+                        <span id="performance-max-info" style="color: #28a745; margin-left: 10px;"></span>
+                    </h4>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="border: 1px solid #ddd; padding: 8px; color:black;">시간(분)</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; color:black;">전류(A)</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; color:black;">온도(℃)</th>
+                                <th style="border: 1px solid #ddd; padding: 8px; color:black;">삭제</th>
+                            </tr>
+                        </thead>
+                        <tbody id="performance-input-tbody">
+                        </tbody>
+                    </table>
+                    <button id="calculate-performance" class="calculate-btn" style="margin-top: 15px; width: 100%;">계산 및 저장</button>
+                </div>
+            </div>
+
+            <div id="performance-results" class="results-section" style="display: none;">
+                <h3>절연성능 경향평가 결과</h3>
+                <div class="indicators-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>항목</th>
+                                <th>계산값</th>
+                                <th>위험도</th>
+                                <th>레벨</th>
+                            </tr>
+                        </thead>
+                        <tbody id="indicators-tbody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>체크리스트</h3>
+                <div id="checklist-section" class="checklist-section">
+                </div>
+            </div>
+
+            <!-- 절연성능 평가 기록 목록 -->
+            <div class="history-section">
+                <div class="history-header">
+                    <h3>평가 기록</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="check-all-select-performance" class="secondary-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">전체 선택</button>
+                        <button id="update-performance-chart-selected" class="secondary-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">선택한 기록 그래프 보기</button>
+                        <button id="clear-performance-history" class="clear-btn-small">전체 삭제</button>
+                    </div>
+                </div>
+                <div id="performance-history-list" class="history-list">
+                    <!-- 기록 목록이 여기에 표시됩니다 -->
+                </div>
+                <!-- 그래프 섹션 -->
+                <div class="chart-section">
+                    <h4>전류-온도 경향그래프(누적)</h4>
+                    <canvas id="performance-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 절연저항 열화 패턴 분류 모드 -->
+        <div id="degradation-mode" class="mode-content">
+            <h2>절연저항 패턴평가</h2>
+
+            <!-- 파일 업로드 섹션 (다량 데이터용) -->
+            <div class="input-section">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📁 다량 데이터(업로드)</h3>
+                <div class="input-group">
+                    <label for="file-input">Excel 또는 CSV 파일 업로드:</label>
+                    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="padding: 10px;">
+                    <small>Excel(.xlsx, .xls) 또는 CSV 파일을 선택하세요. 첫 번째 열: 연도, 두 번째 열: 월, 세 번째 열: 절연저항(MΩ)</small>
+                </div>
+                <button id="upload-file" class="calculate-btn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">다량 데이터 분석</button>
+            </div>
+
+            <!-- 단일 데이터 입력 섹션 -->
+            <div class="input-section" style="margin-top: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">✏️ 단일 데이터(입력)</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                    <div class="input-group">
+                        <label for="single-year-input">연도 (YYYY):</label>
+                        <input type="number" id="single-year-input" class="table-input" placeholder="예: 2020" min="1900" max="2100">
+                    </div>
+                    <div class="input-group">
+                        <label for="single-month-input">월 (MM):</label>
+                        <input type="number" id="single-month-input" class="table-input" placeholder="예: 1" min="1" max="12">
+                    </div>
+                    <div class="input-group">
+                        <label for="single-resistance-input">절연저항 (MΩ):</label>
+                        <input type="number" id="single-resistance-input" class="table-input" placeholder="예: 1200" step="0.01" min="0">
+                    </div>
+                    <button id="add-single-data" class="calculate-btn" style="white-space: nowrap;">추가</button>
+                </div>
+            </div>
+
+            <div id="degradation-results" class="results-section" style="display: none;">
+                <h3>절연저항 패턴평가 결과</h3>
+                <div id="degradation-result-content" class="result-content">
+                </div>
+            </div>
+
+            <!-- 절연저항 패턴평가 기록 목록 -->
+            <div class="history-section">
+                <div class="history-header">
+                    <h3>평가 기록</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="check-all-select-degradation" class="secondary-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">전체 선택</button>
+                        <button id="update-chart-selected" class="secondary-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">선택한 기록 그래프 보기</button>
+                        <button id="clear-degradation-history" class="clear-btn-small">전체 삭제</button>
+                    </div>
+                </div>
+                <div id="degradation-history-list" class="history-list">
+                    <!-- 기록 목록이 여기에 표시됩니다 -->
+                </div>
+                <!-- 그래프 섹션 -->
+                <div class="chart-section">
+                    <h4>전류-온도 경향 그래프(누적)</h4>
+                    <canvas id="degradation-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
