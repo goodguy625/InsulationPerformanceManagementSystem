@@ -155,11 +155,11 @@ insulation-analysis/
 ### 1. 절연성능 평가 - 임계전류 계산 ([script.js:41-55](script.js#L41-L55))
 
 ```javascript
-// 회귀식: T = 39.452 + 0.025 * I + 0.014 * I²
-// T_critic(70℃) 도달 시 I_critic 계산 (2차 방정식 해법)
-const a = REGRESSION_C; // 0.014 (I²의 계수)
-const b = REGRESSION_B; // 0.025 (I의 계수)
-const c = REGRESSION_A - T_CRITIC; // 39.452 - 70 = -30.548
+// 회귀식: T = 39.685 + 0.0298 * I + 0.0139 * I²
+// T_critic(90℃) 도달 시 I_critic 계산 (2차 방정식 해법)
+const a = REGRESSION_C; // 0.0139 (I²의 계수)
+const b = REGRESSION_B; // 0.0298 (I의 계수)
+const c = REGRESSION_A - T_CRITIC; // 39.685 - 90 = -30.685
 
 const discriminant = b * b - 4 * a * c; // 판별식
 let iCritic;
@@ -170,7 +170,7 @@ if (discriminant >= 0) {
 }
 ```
 
-**설명**: 온도-전류 관계를 2차 회귀식으로 모델링하고, 허용온도(70℃)에 도달하는 임계전류를 2차 방정식의 근의 공식으로 계산합니다.
+**설명**: 온도-전류 관계를 2차 회귀식으로 모델링하고, 허용온도(90℃)에 도달하는 임계전류를 2차 방정식의 근의 공식으로 계산합니다.
 
 ---
 
@@ -198,7 +198,7 @@ function evaluateRiskR(sensitivity) {
     if (sensitivity === null) {
         return { level: '-', name: '기준값', class: 'risk-baseline' };
     }
-    if (sensitivity < 0.4) return { level: 'L1', name: '보통', class: 'risk-l1' };
+    if (sensitivity < 0.5) return { level: 'L1', name: '보통', class: 'risk-l1' };
     if (sensitivity < 1.0) return { level: 'L2', name: '높음', class: 'risk-l2' };
     if (sensitivity < 1.5) return { level: 'L3', name: '위험', class: 'risk-l3' };
     return { level: 'L4', name: '치명', class: 'risk-l4' };
@@ -580,3 +580,4 @@ CV(%) = (σ / μ) × 100
 ## 라이선스
 
 본 시스템은 연구 및 교육 목적으로 개발되었습니다.
+
