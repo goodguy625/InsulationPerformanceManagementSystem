@@ -1,8 +1,8 @@
 // 상수 정의
-const T_CRITIC = 70; // 허용온도 (℃)
-const REGRESSION_A = 39.452;
-const REGRESSION_B = 0.025;
-const REGRESSION_C = 0.014;
+const T_CRITIC = 90; // 허용온도 (℃)
+const REGRESSION_A = 39.685;
+const REGRESSION_B = 0.0298; 
+const REGRESSION_C = 0.0139; 
 
 // 모드 전환
 document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -377,7 +377,7 @@ function evaluateRiskR(sensitivity) {
     if (sensitivity === null) {
         return { level: '-', name: '기준값', class: 'risk-baseline' };
     }
-    if (sensitivity < 0.4) return { level: 'L1', name: '보통', class: 'risk-l1' };
+    if (sensitivity < 0.5) return { level: 'L1', name: '보통', class: 'risk-l1' };
     if (sensitivity < 1.0) return { level: 'L2', name: '높음', class: 'risk-l2' };
     if (sensitivity < 1.5) return { level: 'L3', name: '위험', class: 'risk-l3' };
     return { level: 'L4', name: '치명', class: 'risk-l4' };
@@ -2029,3 +2029,4 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHistory('performance');
 });
 console.log('Script loaded');
+
